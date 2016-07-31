@@ -1,25 +1,112 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Project 1
+
+## Introduction
+This markdown file outlines the steps taken for reproducing research tasks outlined in Coursera's Reproducible Research Project #1.  The data is made of physical activity monitoring observations from a particular subject during the months of October and November 2012.
+
+This script loads, cleans, analyzes and processes the data as shown below.
 
 
-## Loading and preprocessing the data
+```{r setup, include= FALSE}
+setwd("C:\\Users\\Collier\\Dropbox\\Skills\\R\\Intro to R\\Coursera_ReproducibleResearch\\Project1")
+getwd()
+```
 
 
+# Download and Read Data
+```{r download}
+library(reshape2)
+# Download and unzip the dataset:
 
-## What is mean total number of steps taken per day?
+zipFile <- "dataset.zip"
+
+if (!file.exists(zipFile)){
+  fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+  download.file(fileURL, zipFile, method="curl")
+} 
+
+if (!file.exists("ActivityData")) { 
+  unzip(zipFile) 
+}
+
+# Read data into R
+
+dataRaw <- read.csv("activity.csv")
+```
+
+# Perform Data Processing
+```{r processing}
+data <- aggregate(steps ~ date, data = dataRaw, sum, na.rm = TRUE)
+```
+
+# Create Exploratory Plot
+```{r hist}
+hist(data$steps, breaks = 30, main = "Steps Per Day", xlab = "# of Steps", ylab = "Frequency Achieved")
+```
+
+The historgram above shows simple view of the distribution of total steps taken each day over the two month period.  We need to look at statistical figures to get a more accurate sense of these numbers.
+
+# Calculate Mean and Median of Steps Achieved Per Day
+```{r stat1}
+stepMedianDaily <- median(data$steps, na.rm = TRUE)
+stepMedianDaily
 
 
+stepMeanDaily <- mean(data$steps, na.rm = TRUE)
+stepMeanDaily
+```
 
-## What is the average daily activity pattern?
+# Construct 5 Minute Time Series Plot of Average Step Activity
+```{r 5min1}
+step5min <- aggregate(steps ~ interval, data=dataRaw, mean, na.rm = TRUE)
+plot(step5min$interval, step5min$steps, type = "l", 
+     main = "Average Steps per 5 Minute Period", xlab = "Period Number",ylab="# of Steps")
 
+# Find Maximum number of steps in five minute interval
+step5minMax <- max(step5min$steps)
+step5minMax
+```
 
+# Addressing missing values in data
+We can impute the values for missing data in various ways, I have chosen to use the median value in the dataset to replace the NA values.
+```{r NA}
+# Calculate number of NA values in dataset
+dataNAsum <- sum(is.na(dataRaw$steps))
+dataNAsum
 
-## Imputing missing values
+# Calculate percentage of data that is an NA value
+dataNAmean <- mean(is.na(dataRaw$steps))
+dataNAmean
 
+# Create new dataset with no NA values
+dataNew <- dataRaw
+dataNew$steps[is.na(dataNew$steps)] <- median(dataRaw$steps, na.rm = TRUE)
+```
 
+# Create xploratory plot on new data set
+```{r hist2}
+dataNewHist <- aggregate(steps~date, data=dataNew, sum, na.rm = TRUE)
+hist(dataNewHist$steps, breaks = 30, main = "Steps Per Day (New Data)", xlab = "# of Steps",     ylab = "Frequency Achieved")
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+We can calculate the revised mean and median from the new dataset.
+```{r stat2}
+# Calculate number of NA values in dataset
+stepMedianNew <- median(dataNewHist$steps, na.rm = TRUE)
+stepMedianNew
+
+stepMeanNew <- mean(dataNewHist$steps, na.rm = TRUE)
+stepMeanNew
+```
+
+# Examine differences between activity on weekdays and weekends
+It is useful to look at the differences in physical activity between and weekends and weekdays.  To accomplish this I will plot two charts below:
+```{r weekDiff, message=FALSE}
+require(lattice)
+dataNew$date <- as.Date(dataNew$date)
+dataNew$DayofWeek <- weekdays(dataNew$date)
+dataNew$WeekEndFlag <- ifelse(dataNew$DayofWeek == "Saturday" | dataNew$DayofWeek == "Sunday",   "Weekend", "Weekday")
+
+panelPlot <- aggregate(steps~interval + WeekEndFlag, dataNew, mean)
+xyplot(steps ~ interval | factor(WeekEndFlag), data = panelPlot, type = "l", aspect = 1/4)
+
+```
