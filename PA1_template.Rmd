@@ -117,3 +117,9 @@ panelPlot <- aggregate(steps~interval + WeekEndFlag, dataNew, mean)
 xyplot(steps ~ interval | factor(WeekEndFlag), data = panelPlot, type = "l", aspect = 1/4)
 
 ```
+
+```{r commit, include=FALSE}
+library(knitr)
+knit2html()
+
+```
